@@ -1,18 +1,21 @@
 import axios from 'axios';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+
 export const apiClient = axios.create({
-  baseURL: 'https://marketplace-backend-q87b.onrender.com',
-  withCredentials: true, // Crucial: ensures cookies (refresh token) are sent across origins
+  baseURL: API_BASE_URL,
+  withCredentials: true,        // Important for cookies (refresh token)
+  timeout: 15000,
 });
 
-// A variable to hold the in-memory access token
+// In-memory access token
 let currentAccessToken: string | null = null;
 
 export const setAccessToken = (token: string | null) => {
   currentAccessToken = token;
 };
 
-// 1. Intercept requests to inject the Access Token dynamically
+// Request Interceptor - Attach Bearer Token
 apiClient.interceptors.request.use((config) => {
   if (currentAccessToken) {
     config.headers.Authorization = `Bearer ${currentAccessToken}`;
@@ -20,33 +23,35 @@ apiClient.interceptors.request.use((config) => {
   return config;
 });
 
-// 2. Intercept responses to handle 401s automatically via Silent Refresh
+// Response Interceptor - Auto Refresh on 401
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    // If the error is an authentication failure (401) and we haven't already retried this request
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        /* * 🚀 PRODUCTION FIX: Using our base instance handles the production 
-         * URL prefixing and safely passes your cookie tracking payloads automatically.
-         */
-        const { data } = await apiClient.post('/auth/refresh', {});
-        
-        setAccessToken(data.accessToken);
-        
-        // Retry the original network call with the newly updated token header
-        originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
-        return apiClient(originalRequest);
+        const { data } = await apiClient.post('/auth/refresh', {}, {
+          withCredentials: true
+        });
+
+        if (data.accessToken) {
+          setAccessToken(data.accessToken);
+          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+          return apiClient(originalRequest);
+        }
       } catch (refreshError) {
-        // Refresh failed completely (cookie missing or invalid session window). Clear memory pointer.
+        console.warn('Token refresh failed:', refreshError);
         setAccessToken(null);
-        return Promise.reject(refreshError);
+        // Optional: Redirect to login
+        // window.location.href = '/login';
       }
     }
+
     return Promise.reject(error);
   }
 );
+
+export default apiClient;
