@@ -1,10 +1,5 @@
 import { Router } from 'express';
-import { 
-  registerUser, 
-  loginUser, 
-  refreshToken, 
-  logoutUser 
-} from '../controllers/auth.controller';
+import { registerUser, loginUser, refreshToken, logoutUser } from '../controllers/auth.controller';
 import { asyncHandler } from '../middleware/asyncHandler.middleware';
 import { authLimiter } from '../middleware/rateLimit.middleware';
 
