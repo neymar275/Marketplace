@@ -1,27 +1,41 @@
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
-import cookieParser from 'cookie-parser'; // 👈 CRITICAL: Allows reading secure JWT refresh cookies
+import cookieParser from 'cookie-parser'; // Allows reading secure JWT refresh cookies
 import authRouter from './routes/auth.routes';
 import listingRouter from './routes/listing.routes';
 
 const app = express();
 
+// 🚀 PRODUCTION FIX: Whitelist array containing both your live Vercel domain and local machine
 const allowedOrigins = [
   'https://marketplace-client-seven.vercel.app',
   'http://localhost:5173'
 ];
+
 // ==========================================
 // 1. GLOBAL CORE MIDDLEWARES
 // ==========================================
 app.use(cors({
-  origin: 'http://localhost:5173', // Your Vite frontend origin terminal port
-  credentials: true                // Required to pass secure HTTP-only cookies back and forth
+  origin: (origin, callback) => {
+    // Allow server-to-server requests or tools like Postman (no origin)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`Blocked by CORS: ${origin}`);
+      callback(new Error('Not allowed by CORS policy'));
+    }
+  },
+  credentials: true, // Required to pass secure HTTP-only cookies back and forth across domains
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Cookie']
 }));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cookieParser()); // 👈 Parses incoming cookie keys into req.cookies object
+app.use(cookieParser()); // Parses incoming cookie keys into req.cookies object
 
 // ==========================================
 // 2. STATIC ASSETS ROUTING (FIXED ORDER)
