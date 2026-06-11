@@ -21,11 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Silent session validation on application boot
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // ✅ FIXED: Correct path with /api
+        // ✅ Correct path
         const response = await apiClient.post('/api/auth/refresh');
         const { token, user: userData } = response.data;
 
@@ -34,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(userData);
         }
       } catch (err) {
-        // Normal case when user has no valid session
         localStorage.removeItem('token');
         setUser(null);
       } finally {
@@ -52,7 +50,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      // ✅ FIXED: Correct path with /api
       await apiClient.post('/api/auth/logout');
     } catch (err) {
       console.error('Logout warning:', err);
