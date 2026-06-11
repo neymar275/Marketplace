@@ -4,7 +4,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true,        // Important for cookies (refresh token)
+  withCredentials: true,
   timeout: 15000,
 });
 
@@ -33,19 +33,20 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const { data } = await apiClient.post('/auth/refresh', {}, {
+        // ✅ FIXED: Correct path + correct response key
+        const { data } = await apiClient.post('/api/auth/refresh', {}, {
           withCredentials: true
         });
 
-        if (data.accessToken) {
-          setAccessToken(data.accessToken);
-          originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
+        if (data.token) {
+          setAccessToken(data.token);
+          originalRequest.headers.Authorization = `Bearer ${data.token}`;
           return apiClient(originalRequest);
         }
       } catch (refreshError) {
         console.warn('Token refresh failed:', refreshError);
         setAccessToken(null);
-        // Optional: Redirect to login
+        // Optional: redirect to login page
         // window.location.href = '/login';
       }
     }
