@@ -5,9 +5,7 @@ import { Navbar } from '@/components/layout/Navbar';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { ErrorFallback } from '@/components/ui/ErrorFallback';
-import HomePage from '@/pages/HomePage';
-import ListingsPage from '@/pages/ListingsPage';
-import ListingDetailPage from '@/pages/ListingDetailPage';
+
 // Performance-optimized lazy-loaded route imports
 const HomePage = lazy(() => import('./pages/HomePage'));
 const ListingsPage = lazy(() => import('./pages/ListingsPage'));

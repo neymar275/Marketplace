@@ -11,12 +11,12 @@ export class ListingController {
     try {
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 12;
-      
+
       const result = await ListingService.getAllActive(cursor, limit);
-      
+
       console.log('--- DEBUG OUTBOUND FETCH MATRIX ---');
       console.log('Sample Listing Keys:', result?.listings?.[0] ? Object.keys(result.listings[0]) : 'No entries found');
-      
+
       res.status(200).json(result);
     } catch (error: any) {
       console.error('Error inside ListingController.getAll:', error);
@@ -34,8 +34,8 @@ export class ListingController {
       // Fallback: If no global auth middleware populated req.user, parse the session token manually
       if (!sellerId) {
         const authHeader = req.headers.authorization;
-        const token = authHeader?.startsWith('Bearer ') 
-          ? authHeader.split(' ')[1] 
+        const token = authHeader?.startsWith('Bearer ')
+          ? authHeader.split(' ')[1]
           : (req.cookies?.token || req.cookies?.refreshToken);
 
         if (token) {
@@ -43,9 +43,8 @@ export class ListingController {
             // Decodes the token matching your environment signature secret
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret') as any;
             sellerId = decoded.id;
-          } catch (jwtErr) {
-            console.warn('Dashboard automatic fallback token parsing skipped:', jwtErr.message);
-          }
+          } catch (jwtErr: any) {
+  console.warn('Dashboard automatic fallback token parsing skipped:', jwtErr?.message || jwtErr);
         }
       }
 
@@ -57,7 +56,7 @@ export class ListingController {
 
       console.log(`Fetching active marketplace inventory rows for Seller ID: ${sellerId}`);
       const listings = await ListingService.getUserInventory(sellerId);
-      
+
       res.status(200).json({ data: listings });
     } catch (error: any) {
       console.error('Error inside ListingController.getUserListings:', error);
@@ -97,7 +96,7 @@ export class ListingController {
   static create = async (req: Request, res: Response) => {
     try {
       const { title, description, price, condition, categoryName, sellerId } = req.body;
-      
+
       if (!title || !price || !categoryName || !sellerId) {
         res.status(400).json({ error: 'Missing required parameter: title, price, categoryName, or sellerId.' });
         return;
@@ -120,7 +119,7 @@ export class ListingController {
           .trim()
           .replace(/\s+/g, '-')
           .replace(/[^\w\-]+/g, '');
-          
+
         category = await prisma.category.create({
           data: {
             name: categoryName,

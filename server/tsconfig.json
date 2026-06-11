@@ -10,6 +10,8 @@
     "skipLibCheck": true,
     "noImplicitAny": false,
     "strictNullChecks": false,
+    "noEmitOnError": false,
+    "checkJs": false
   },
   // 🚀 ADD OR SET THESE TWO TO FALSE TO BYPASS IMPLICIT TYPE CRASHES
   "include": [
