@@ -15,7 +15,8 @@ export class ViewBatcher {
           if (views) {
             await prisma.listing.update({
               where: { id: listingId },
-              data: { views: { increment: parseInt(views, 10) } }
+              // 🚀 FIXED: Casted views explicitly "as string" to pass production build type validation checks
+              data: { views: { increment: parseInt(views as string, 10) } }
             });
             await redis.del(key);
           }

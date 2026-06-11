@@ -12,7 +12,7 @@ export class ListingController {
       const cursor = req.query.cursor as string | undefined;
       const limit = parseInt(req.query.limit as string) || 12;
       
-      const result = await ListingService.getAllActive(cursor, limit);
+      const result = await ListingService.getAllActive(cursor as string | undefined, limit);
       
       console.log('--- DEBUG OUTBOUND FETCH MATRIX ---');
       console.log('Sample Listing Keys:', result?.listings?.[0] ? Object.keys(result.listings[0]) : 'No entries found');
