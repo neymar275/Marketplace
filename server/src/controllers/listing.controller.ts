@@ -5,14 +5,10 @@ import { prisma } from '../lib/prisma';
 
 export class ListingController {
   /**
-   * Fetch active marketplace listings using cursor-based pagination parameters
-   */
-  /**
-   * Fetch active marketplace listings using cursor-based pagination parameters
+   * Fetch active marketplace listings using cursor-based pagination
    */
   static getAll = async (req: Request, res: Response) => {
     try {
-      // 🚀 FIXED: Read the query parameter safely and force it to be a single plain string or undefined
       const rawCursor = req.query.cursor;
       const cursor = Array.isArray(rawCursor) 
         ? (rawCursor[0] as string) 
@@ -33,13 +29,13 @@ export class ListingController {
   };
 
   /**
-   * Aggregates inventory items belonging strictly to the active logged-in profile session
+   * Get listings for the logged-in user
    */
   static getUserListings = async (req: Request, res: Response) => {
     try {
       let sellerId = (req as any).user?.id;
 
-      // Fallback: If no global auth middleware populated req.user, parse the session token manually
+      // Fallback: manual token parsing
       if (!sellerId) {
         const authHeader = req.headers.authorization;
         const token = authHeader?.startsWith('Bearer ') 
@@ -48,24 +44,20 @@ export class ListingController {
 
         if (token) {
           try {
-            // Decodes the token matching your environment signature secret
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'super_secret_access_key_change_in_prod') as any;
             sellerId = decoded.id;
           } catch (jwtErr: any) {
-            console.warn('Dashboard automatic fallback token parsing skipped:', jwtErr?.message || jwtErr);
+            console.warn('Token parsing fallback skipped:', jwtErr?.message);
           }
         }
       }
 
-      // If still no identity can be resolved, reject the request safely
       if (!sellerId) {
-        res.status(401).json({ error: 'Unauthorized profile access. Active session token missing.' });
+        res.status(401).json({ error: 'Unauthorized profile access.' });
         return;
       }
 
-      console.log(`Fetching active marketplace inventory rows for Seller ID: ${sellerId}`);
       const listings = await ListingService.getUserInventory(sellerId);
-      
       res.status(200).json({ data: listings });
     } catch (error: any) {
       console.error('Error inside ListingController.getUserListings:', error);
@@ -74,21 +66,22 @@ export class ListingController {
   };
 
   /**
-   * Fetch a single unique listing using its URL slug parameter descriptor
+   * Get single listing by slug
    */
   static getBySlug = async (req: Request, res: Response) => {
     try {
-      const { slug } = req.params;
+      // 🚀 FIXED: Cast parameter directly "as string" to fulfill strict compiler type contracts
+      const slug = req.params.slug as string;
 
       if (!slug) {
-        res.status(400).json({ error: 'Missing required parameter field: slug.' });
+        res.status(400).json({ error: 'Missing required parameter: slug.' });
         return;
       }
 
       const listing = await ListingService.getBySlug(slug);
 
       if (!listing) {
-        res.status(404).json({ error: 'The requested marketplace listing could not be found.' });
+        res.status(404).json({ error: 'Listing not found.' });
         return;
       }
 
@@ -100,14 +93,14 @@ export class ListingController {
   };
 
   /**
-   * Process text and multi-part data files, passing a unified image array to the Service layer
+   * Create new listing
    */
   static create = async (req: Request, res: Response) => {
     try {
       const { title, description, price, condition, categoryName, sellerId } = req.body;
       
       if (!title || !price || !categoryName || !sellerId) {
-        res.status(400).json({ error: 'Missing required parameter: title, price, categoryName, or sellerId.' });
+        res.status(400).json({ error: 'Missing required parameters: title, price, categoryName, sellerId.' });
         return;
       }
 
@@ -118,6 +111,7 @@ export class ListingController {
         imagePaths.push('https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=800');
       }
 
+      // Find or create category
       let category = await prisma.category.findFirst({
         where: { name: categoryName }
       });
@@ -132,7 +126,8 @@ export class ListingController {
         category = await prisma.category.create({
           data: {
             name: categoryName,
-            slug: generatedSlug
+            slug: generatedSlug,
+            icon: 'bike' // default icon
           }
         });
       }
@@ -140,16 +135,16 @@ export class ListingController {
       const listing = await ListingService.create(sellerId, {
         title,
         description: description || '',
-        price,
-        condition,
+        price: parseFloat(price),
+        condition: condition || 'GOOD',
         categoryId: category.id,
         images: imagePaths
       });
 
       res.status(201).json(listing);
     } catch (error: any) {
-      console.error('Unhandled exception caught inside ListingController.create:', error);
-      res.status(500).json({ error: error.message || 'Internal engine error during asset model creation.' });
+      console.error('Error in ListingController.create:', error);
+      res.status(500).json({ error: error.message || 'Failed to create listing.' });
     }
   };
 }

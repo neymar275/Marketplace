@@ -17,7 +17,7 @@ export class WebhookController {
       return;
     }
 
-    let event: Stripe.Event;
+    let event: any;
 
     try {
       // req.body must be the raw Buffer here, NOT parsed JSON!
@@ -30,7 +30,7 @@ export class WebhookController {
 
     // Handle the specific checkout success event
     if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as Stripe.Checkout.Session;
+      const session = event.data.object as any;
       
       const orderId = session.metadata?.orderId;
       const listingId = session.metadata?.listingId;
