@@ -12,21 +12,15 @@ interface ListingFilters {
 
 export class ListingService {
   /**
-   * Fetches active items using full-text SQL macros, dynamic criteria matrices, and cursor bounds
-   */
-    /**
-   * Production-ready active listings fetch with proper error handling, logging, and graceful degradation
+   * Production-ready active listings fetch
    */
   static async getAllActive(cursor?: string, limit: number = 12, filters: ListingFilters = {}) {
     try {
       console.log(`[ListingService] Fetching listings | cursor: ${cursor}, limit: ${limit}, filters:`, filters);
 
-      const where: any = {
-        status: 'ACTIVE', // Only show published listings in production
-      };
+      const where: any = { status: 'ACTIVE' };
 
-      // Full-text search (safe fallback if no results)
-      let searchIds: string[] | null = null;
+      // Full-text search
       if (filters.search?.trim()) {
         const searchTerm = filters.search.trim().split(/\s+/).join(' & ') + ':*';
         const rawResults = await prisma.$queryRaw<{ id: string }[]>`
@@ -34,17 +28,14 @@ export class ListingService {
           WHERE status = 'ACTIVE' 
             AND search_vector @@ to_tsquery('english', ${searchTerm})
         `;
-        searchIds = rawResults.map(r => r.id);
-
+        const searchIds = rawResults.map(r => r.id);
         if (searchIds.length > 0) {
           where.id = { in: searchIds };
         } else {
-          console.log(`[ListingService] No results for search term: "${filters.search}"`);
           return { listings: [], data: [], nextCursor: undefined };
         }
       }
 
-      // Apply other filters safely
       if (filters.category && filters.category !== 'all') {
         where.category = { slug: filters.category };
       }
@@ -57,7 +48,6 @@ export class ListingService {
         if (filters.maxPrice !== undefined) where.price.lte = filters.maxPrice;
       }
 
-      // Sorting
       let orderBy: any = { createdAt: 'desc' };
       if (filters.sort === 'price_asc') orderBy = { price: 'asc' };
       if (filters.sort === 'price_desc') orderBy = { price: 'desc' };
@@ -76,10 +66,7 @@ export class ListingService {
 
       const hasMore = listings.length > limit;
       const nextCursor = hasMore ? listings[listings.length - 1].id : undefined;
-
-      if (hasMore) listings.pop(); // Remove extra item used for pagination
-
-      console.log(`[ListingService] Successfully returned ${listings.length} listings`);
+      if (hasMore) listings.pop();
 
       return { 
         listings, 
@@ -89,53 +76,61 @@ export class ListingService {
 
     } catch (error: any) {
       console.error('[ListingService] Critical error in getAllActive:', error);
-      // Never crash the frontend in production
       return { 
         listings: [], 
         data: [], 
-        nextCursor: undefined,
-        error: process.env.NODE_ENV === 'production' ? undefined : error.message 
+        nextCursor: undefined 
       };
     }
   }
+
   /**
-   * Fetches a single unique listing using its URL slug parameter descriptor
+   * Get user's own listings
+   */
+  static getUserInventory = async (sellerId: string) => {
+    try {
+      return await prisma.listing.findMany({
+        where: {
+          sellerId,
+          status: 'ACTIVE',
+        },
+        include: {
+          category: {
+            select: { name: true, slug: true }
+          }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    } catch (error) {
+      console.error('Error in getUserInventory:', error);
+      return [];
+    }
+  };
+
+  /**
+   * Get single listing by slug
    */
   static getBySlug = async (slug: string) => {
     return await prisma.listing.findFirst({
-      where: {
-        slug: slug,
-        status: 'ACTIVE', // Only return live market inventory items
-      },
+      where: { slug, status: 'ACTIVE' },
       include: {
-        category: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          }
-        },
-        seller: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true,
-          }
-        }
+        category: { select: { id: true, name: true, slug: true } },
+        seller: { select: { id: true, name: true, avatar: true } }
       }
     });
   };
 
   /**
-   * Maps multi-part data objects safely into explicit database column formats
+   * Create new listing
    */
   static async create(sellerId: string, data: any) {
     const slug = `${data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`;
     
-    // Safe typing wrapper to guarantee text inputs are cleanly saved as decimals in Postgres
-    const decimalPrice = data.price ? new Prisma.Decimal(parseFloat(data.price).toFixed(2)) : new Prisma.Decimal(0);
+    const decimalPrice = data.price 
+      ? new Prisma.Decimal(parseFloat(data.price).toFixed(2)) 
+      : new Prisma.Decimal(0);
 
-    const listing = await prisma.listing.create({
+    return await prisma.listing.create({
       data: { 
         ...data, 
         price: decimalPrice,
@@ -143,11 +138,7 @@ export class ListingService {
         sellerId, 
         status: 'ACTIVE' 
       },
-      include: {
-        category: true
-      }
+      include: { category: true }
     });
-    
-    return listing;
   }
 }
