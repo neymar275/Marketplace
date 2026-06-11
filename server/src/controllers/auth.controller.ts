@@ -6,7 +6,7 @@ import { prisma } from '../lib/prisma';
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-access-secret-key-123';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-key-456';
 
-export const registerUser = async (req: Request, res: Response): Promise<void> => {
+export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
 
@@ -53,7 +53,7 @@ export const registerUser = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-export const loginUser = async (req: Request, res: Response): Promise<void> => {
+export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
 
@@ -77,17 +77,8 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const accessToken = jwt.sign(
-      { id: user.id, email: user.email }, 
-      JWT_SECRET, 
-      { expiresIn: '15m' }
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user.id }, 
-      JWT_REFRESH_SECRET, 
-      { expiresIn: '7d' }
-    );
+    const accessToken = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '15m' });
+    const refreshToken = jwt.sign({ id: user.id }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
 
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
@@ -109,7 +100,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
-export const refreshToken = async (req: Request, res: Response): Promise<void> => {
+export const refreshToken = async (req: Request, res: Response) => {
   const refreshToken = req.cookies?.refreshToken;
 
   if (!refreshToken) {
@@ -126,11 +117,7 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
       return;
     }
 
-    const newAccessToken = jwt.sign(
-      { id: user.id, email: user.email }, 
-      JWT_SECRET, 
-      { expiresIn: '15m' }
-    );
+    const newAccessToken = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '15m' });
 
     res.status(200).json({ success: true, token: newAccessToken });
   } catch (err) {
@@ -138,7 +125,11 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-export const logoutUser = async (req: Request, res: Response): Promise<void> => {
-  res.clearCookie('refreshToken', { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax' });
+export const logoutUser = async (req: Request, res: Response) => {
+  res.clearCookie('refreshToken', { 
+    httpOnly: true, 
+    secure: process.env.NODE_ENV === 'production', 
+    sameSite: 'lax' 
+  });
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
