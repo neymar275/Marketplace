@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-chalk text-ink font-body antialiased;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-bold;
+  }
+}
+
+@layer utilities {
+  /* Signature Element: Irregular torn-paper bottom edge */
+  .torn-edge {
+    clip-path: polygon(
+      0% 0%, 100% 0%,
+      100% 100%, 98% calc(100% - 4px), 96% 100%, 94% calc(100% - 3px), 92% 100%,
+      90% calc(100% - 6px), 88% 100%, 86% calc(100% - 2px), 84% 100%,
+      82% calc(100% - 4px), 80% 100%, 78% calc(100% - 7px), 76% 100%,
+      74% calc(100% - 3px), 72% 100%, 70% calc(100% - 5px), 68% 100%,
+      66% calc(100% - 2px), 64% 100%, 62% calc(100% - 4px), 60% 100%,
+      58% calc(100% - 6px), 56% 100%, 54% calc(100% - 3px), 52% 100%,
+      50% calc(100% - 5px), 48% 100%, 46% calc(100% - 2px), 44% 100%,
+      42% calc(100% - 4px), 40% 100%, 38% calc(100% - 7px), 36% 100%,
+      34% calc(100% - 3px), 32% 100%, 30% calc(100% - 5px), 28% 100%,
+      26% calc(100% - 2px), 24% 100%, 22% calc(100% - 4px), 20% 100%,
+      18% calc(100% - 6px), 16% 100%, 14% calc(100% - 3px), 12% 100%,
+      10% calc(100% - 5px), 8% 100%, 6% calc(100% - 2px), 4% 100%,
+      2% calc(100% - 4px), 0% 100%
+    );
+  }
+}
+
+@layer utilities {
+  /* High-Performance Text Entrance */
+  .animate-hero-content-enter {
+    animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .animate-hero-stagger-1 {
+    opacity: 0;
+    animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+  }
+  .animate-hero-stagger-2 {
+    opacity: 0;
+    animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+  }
+
+  /* Layered Hardware Accelerated Image Collages */
+  .animate-hero-bike-1 {
+    animation: heroFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.2s forwards;
+  }
+  .animate-hero-bike-2 {
+    opacity: 0;
+    animation: heroScaleIn 1s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+  }
+  .animate-hero-bike-3 {
+    opacity: 0;
+    animation: heroFadeUp 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.5s forwards;
+  }
+}
+
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.browse-btn{
+  border-radius: 10px;
+}
+
+.browse-btn:hover{
+  color: beige;
+  
+}

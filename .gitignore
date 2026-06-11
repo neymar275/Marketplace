@@ -1,0 +1,20 @@
+# Node Dependencies
+node_modules/
+dist/
+.eslintcache
+
+# Environmental Secrets Keys
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Local File Storage Uploads Assets
+server/uploads/*
+!server/uploads/.gitkeep
+
+# IDE & OS Garbage Files
+.DS_Store
+.vscode/
+thumbs.db

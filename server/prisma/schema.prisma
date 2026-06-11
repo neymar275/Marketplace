@@ -1,0 +1,188 @@
+// ==========================================
+// CONFIGURATION
+// ==========================================
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql" // 👈 FIXED: url stripped completely here to follow Prisma 7 config patterns
+}
+
+// ==========================================
+// ENUMS
+// ==========================================
+
+enum Role {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  DRAFT
+  PAUSED
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+// ==========================================
+// MODELS
+// ==========================================
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  avatar       String?
+  role         Role     @default(BUYER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  listings         Listing[]
+  orders           Order[]        @relation("BuyerOrders")
+  givenReviews     Review[]       @relation("Reviewer")
+  receivedReviews  Review[]       @relation("Seller")
+  savedListings    SavedListing[]
+  sentMessages     Message[]      @relation("Sender")
+  receivedMessages Message[]     @relation("Receiver")
+
+  @@index([email])
+}
+
+model Category {
+  id   String @id @default(uuid())
+  name String
+  slug String @unique
+  icon String?
+  
+  // Self-relation for subcategories
+  parentId String?
+  parent   Category?  @relation("SubCategories", fields: [parentId], references: [id])
+  children Category[] @relation("SubCategories")
+  
+  listings Listing[]
+}
+
+model Listing {
+  id          String        @id @default(uuid())
+  title       String
+  slug        String        @unique
+  description String        @db.Text
+  price       Decimal       @db.Decimal(10, 2)
+  condition   Condition
+  images      String[]
+  stock       Int           @default(1)
+  status      ListingStatus @default(DRAFT)
+  views       Int           @default(0)
+  tags        String[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  sellerId   String
+  seller     User      @relation(fields: [sellerId], references: [id])
+  categoryId String
+  category   Category  @relation(fields: [categoryId], references: [id])
+  
+  orderItems OrderItem[]
+  savedBy    SavedListing[]
+  reviews    Review[]
+  messages   Message[]
+
+  // Indexes for high-performance filtering and sorting
+  @@index([slug])
+  @@index([categoryId])
+  @@index([status])
+  @@index([price])
+}
+
+model Order {
+  id                  String      @id @default(uuid())
+  status              OrderStatus @default(PENDING)
+  stripeSessionId     String?     @unique
+  stripePaymentIntent String?     @unique
+  total               Decimal     @db.Decimal(10, 2)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  // Relations
+  buyerId String
+  buyer   User        @relation("BuyerOrders", fields: [buyerId], references: [id])
+  items   OrderItem[]
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  quantity        Int
+  priceAtPurchase Decimal  @db.Decimal(10, 2)
+
+  // Relations
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  rating    Int      @default(5) // 1 to 5
+  body      String?  @db.Text
+  createdAt DateTime @default(now())
+
+  // Relations
+  reviewerId String
+  reviewer   User     @relation("Reviewer", fields: [reviewerId], references: [id])
+  sellerId   String
+  seller     User     @relation("Seller", fields: [sellerId], references: [id])
+  listingId  String?
+  listing    Listing? @relation(fields: [listingId], references: [id], onDelete: SetNull)
+}
+
+model SavedListing {
+  id      String   @id @default(uuid())
+  savedAt DateTime @default(now())
+
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+}
+
+model Message {
+  id        String    @id @default(uuid())
+  body      String    @db.Text
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  // Relations
+  senderId   String
+  sender     User      @relation("Sender", fields: [senderId], references: [id])
+  receiverId String
+  receiver   User      @relation("Receiver", fields: [receiverId], references: [id])
+  listingId  String?
+  listing    Listing?  @relation(fields: [listingId], references: [id], onDelete: SetNull)
+}
