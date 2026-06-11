@@ -7,6 +7,10 @@ import listingRouter from './routes/listing.routes';
 
 const app = express();
 
+const allowedOrigins = [
+  'https://marketplace-client-seven.vercel.app',
+  'http://localhost:5173'
+];
 // ==========================================
 // 1. GLOBAL CORE MIDDLEWARES
 // ==========================================
