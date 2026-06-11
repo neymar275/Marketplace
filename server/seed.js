@@ -1,21 +1,60 @@
-require('dotenv').config();
-const { PrismaClient } = require('@prisma/client');
+import { PrismaClient } from '@prisma/client';
+
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding categories...');
-  try {
-    const bikes = await prisma.category.create({ data: { name: 'Complete Bikes', slug: 'bikes' } });
-    const frames = await prisma.category.create({ data: { name: 'Frames & Forks', slug: 'frames' } });
-    const parts = await prisma.category.create({ data: { name: 'Components', slug: 'parts' } });
+  console.log('🌱 Starting Marketplace Database Seed...\n');
 
-    console.log(`\n✅ Database Seeded! Copy these 3 lines to your frontend:\n`);
-    console.log(`{ id: '${bikes.id}', name: 'Complete Bikes' },`);
-    console.log(`{ id: '${frames.id}', name: 'Frames & Forks' },`);
-    console.log(`{ id: '${parts.id}', name: 'Components' }`);
-  } catch (error) {
-    console.error('\n❌ Error:', error.message);
-    console.log('\n(If it says "Unique constraint failed", it means the categories are already in your database! Just look at Prisma Studio to grab their IDs).');
+  try {
+    // Seed Categories with stable IDs
+    const categories = [
+      {
+        id: '59b418a0-7217-4749-8c9f-3158c5028791',
+        name: 'Complete Bikes',
+        slug: 'bikes',
+        icon: 'bike',
+      },
+      {
+        id: 'a93b48f0-1534-406c-829d-4054dbcf131e',
+        name: 'Frames & Forks',
+        slug: 'frames',
+        icon: 'frame',
+      },
+      {
+        id: 'd8f52136-11f8-45e3-982c-7b419b480f2d',
+        name: 'Components',
+        slug: 'parts',
+        icon: 'tool',
+      },
+    ];
+
+    for (const cat of categories) {
+      await prisma.category.upsert({
+        where: { id: cat.id },
+        update: {},
+        create: cat,
+      });
+      console.log(`✅ Category: ${cat.name}`);
+    }
+
+    // Seed Test User
+    const testUser = await prisma.user.upsert({
+      where: { email: 'test@seller.com' },
+      update: {},
+      create: {
+        id: '00000000-0000-0000-0000-000000000001',
+        email: 'test@seller.com',
+        name: 'Test Seller',
+      },
+    });
+
+    console.log(`✅ Test User created → ID: ${testUser.id}`);
+
+    console.log('\n🎉 Seed completed successfully!');
+    console.log('\nYou can now create listings using sellerId:', testUser.id);
+
+  } catch (error: any) {
+    console.error('❌ Seed failed:', error.message);
   } finally {
     await prisma.$disconnect();
   }
