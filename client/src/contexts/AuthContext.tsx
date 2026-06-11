@@ -5,7 +5,7 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role?: string;
 }
 
 interface AuthContextType {
@@ -25,14 +25,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Attempt to rotate access tokens silently via HTTP-only cookies
-        const response = await apiClient.post('/auth/refresh');
+        // ✅ FIXED: Correct path with /api
+        const response = await apiClient.post('/api/auth/refresh');
         const { token, user: userData } = response.data;
-        
-        localStorage.setItem('token', token);
-        setUser(userData);
+
+        if (token) {
+          localStorage.setItem('token', token);
+          setUser(userData);
+        }
       } catch (err) {
-        // Fallback silently: A missing cookie on boot is expected, not a system crash
+        // Normal case when user has no valid session
         localStorage.removeItem('token');
         setUser(null);
       } finally {
@@ -50,9 +52,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      await apiClient.post('/auth/logout');
+      // ✅ FIXED: Correct path with /api
+      await apiClient.post('/api/auth/logout');
     } catch (err) {
-      console.error('Logout sync warning:', err);
+      console.error('Logout warning:', err);
     } finally {
       localStorage.removeItem('token');
       setUser(null);
@@ -69,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be wrapped inside a valid global AuthProvider context.');
+    throw new Error('useAuth must be wrapped inside a valid AuthProvider.');
   }
   return context;
 };
