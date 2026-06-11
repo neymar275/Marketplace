@@ -14,7 +14,7 @@ export const ErrorFallback = ({ error, resetErrorBoundary }: FallbackProps) => {
       {/* Only show technical details in development */}
       {import.meta.env.DEV && (
         <pre className="text-left bg-chalk p-4 w-full overflow-x-auto text-xs font-mono text-slate mb-8">
-          {error.message}
+          {(error as any)?.message}
         </pre>
       )}
 

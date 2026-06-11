@@ -1,8 +1,11 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Force load env tokens at the absolute top of the compilation stack before importing app modules
-dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+// Load local environment tokens if executing on a development machine
+// In production (Render), cloud container tokens are injected natively into process.env
+if (process.env.NODE_ENV !== 'production') {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+}
 
 import app from './app';
 import { redis } from './lib/redis';
@@ -14,13 +17,15 @@ async function bootstrap() {
   try {
     // 1. Connect to the distributed Redis cache layer before routing traffic
     await redis.connect();
+    console.log('Successfully established connection to cloud Key-Value cache engine.');
     
     // 2. Start the background batch processing analytics engine
     ViewBatcher.start();
+    console.log('Analytics metric batch processing queues initialized.');
     
     // 3. Fire up the central HTTP engine pipeline listen loop
     app.listen(PORT, () => {
-      console.log(`Server is running on http://localhost:${PORT}`);
+      console.log(`Server engine is running live on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to boot market engine:', error);
